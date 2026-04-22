@@ -277,6 +277,174 @@ const Index = () => {
           />
         </div>
 
+        <SectionCard
+          title="Consistency of Failure"
+          description={
+            filters.brand === ALL
+              ? `How persistently brands fail across ${brandConsistency.length} brands in scope. Brands need ≥${MIN_SAMPLES_FOR_TIER} samples to be classified.`
+              : `Failure pattern for ${selectedBrand} — based on all its samples in the current commodity/state scope.`
+          }
+        >
+          {filters.brand !== ALL && selectedBrandStats ? (
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div className="flex items-start gap-4">
+                <div
+                  className={cn(
+                    "flex h-14 w-14 items-center justify-center rounded-full border",
+                    selectedBrandStats.tier === "consistent" &&
+                      "border-risk/30 bg-risk/15 text-risk",
+                    selectedBrandStats.tier === "frequent" &&
+                      "border-warning/40 bg-warning/20 text-foreground",
+                    selectedBrandStats.tier === "occasional" &&
+                      "border-chart-4/30 bg-chart-4/15 text-foreground",
+                    selectedBrandStats.tier === "clean" &&
+                      "border-success/30 bg-success/15 text-success",
+                    selectedBrandStats.tier === "insufficient" &&
+                      "border-border bg-muted text-muted-foreground",
+                  )}
+                >
+                  <Activity className="h-6 w-6" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <p className="text-base font-semibold text-foreground">
+                      {CONSISTENCY_META[selectedBrandStats.tier].label}
+                    </p>
+                    <ConsistencyBadge tier={selectedBrandStats.tier} />
+                  </div>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {CONSISTENCY_META[selectedBrandStats.tier].description}.{" "}
+                    {selectedBrandStats.tier === "insufficient"
+                      ? `Only ${selectedBrandStats.total} sample${selectedBrandStats.total === 1 ? "" : "s"} available — interpret with caution.`
+                      : `${selectedBrandStats.nc} of ${selectedBrandStats.total} samples failed.`}
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-6">
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                    Samples
+                  </p>
+                  <p className="text-2xl font-semibold tabular-nums">
+                    {selectedBrandStats.total}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                    NC rate
+                  </p>
+                  <p
+                    className={cn(
+                      "text-2xl font-semibold tabular-nums",
+                      selectedBrandStats.tier === "consistent" && "text-risk",
+                      selectedBrandStats.tier === "clean" && "text-success",
+                    )}
+                  >
+                    {selectedBrandStats.total ? fmtPct(selectedBrandStats.ncRate) : "—"}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+              {tierOrder.map((tier) => {
+                const count = tierCounts[tier];
+                const totalBrands = brandConsistency.length || 1;
+                const share = (count / totalBrands) * 100;
+                return (
+                  <div
+                    key={tier}
+                    className={cn(
+                      "rounded-md border p-4",
+                      tier === "consistent" && "border-risk/30 bg-risk-bg",
+                      tier === "frequent" && "border-warning/40 bg-warning/10",
+                      tier === "occasional" && "border-chart-4/30 bg-chart-4/5",
+                      tier === "clean" && "border-success/30 bg-success/5",
+                      tier === "insufficient" && "border-border bg-muted/40",
+                    )}
+                  >
+                    <ConsistencyBadge tier={tier} />
+                    <p className="mt-3 text-2xl font-semibold tabular-nums text-foreground">
+                      {count}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {fmtPct(share)} of brands
+                    </p>
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      {CONSISTENCY_META[tier].description}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {filters.brand === ALL && worstBrands.length > 0 ? (
+            <div className="mt-6">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Most consistent failures
+              </p>
+              <div className="overflow-hidden rounded-md border border-border">
+                <table className="w-full text-sm">
+                  <thead className="bg-secondary text-secondary-foreground">
+                    <tr className="text-left">
+                      <th className="px-4 py-2.5 font-medium">Brand</th>
+                      <th className="px-4 py-2.5 font-medium">Pattern</th>
+                      <th className="px-4 py-2.5 text-right font-medium">Samples</th>
+                      <th className="px-4 py-2.5 text-right font-medium">NC</th>
+                      <th className="px-4 py-2.5 text-right font-medium">NC %</th>
+                      <th className="px-4 py-2.5 text-right font-medium">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {worstBrands.map((b) => (
+                      <tr
+                        key={b.brand}
+                        className={cn(
+                          "border-t border-border",
+                          b.tier === "consistent" && "bg-risk-bg/60",
+                        )}
+                      >
+                        <td className="px-4 py-2.5 font-medium text-foreground">
+                          {b.brand}
+                        </td>
+                        <td className="px-4 py-2.5">
+                          <ConsistencyBadge tier={b.tier} />
+                        </td>
+                        <td className="px-4 py-2.5 text-right tabular-nums">
+                          {b.total}
+                        </td>
+                        <td className="px-4 py-2.5 text-right tabular-nums">
+                          {b.nc}
+                        </td>
+                        <td
+                          className={cn(
+                            "px-4 py-2.5 text-right font-semibold tabular-nums",
+                            b.tier === "consistent" && "text-risk",
+                          )}
+                        >
+                          {fmtPct(b.ncRate)}
+                        </td>
+                        <td className="px-4 py-2.5 text-right">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleFilterChange({ brand: b.brand })
+                            }
+                            className="rounded-md border border-border bg-card px-2.5 py-1 text-xs font-medium text-foreground transition-colors hover:bg-secondary"
+                          >
+                            Inspect
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : null}
+        </SectionCard>
+
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <SectionCard
             className="lg:col-span-2"
