@@ -142,6 +142,66 @@ const Index = () => {
   const handleFilterChange = (next: Partial<Filters>) =>
     setFilters((f) => ({ ...f, ...next }));
 
+  // Consistency of failure — brand-level. Built from the *commodity/state
+  // filtered* slice so the analysis respects the user's scope, but ignores
+  // the brand filter so it can rank brands when one is selected too.
+  const brandScopedSamples = useMemo(
+    () =>
+      applyFilters(samples, {
+        brand: ALL,
+        commodity: filters.commodity,
+        state: filters.state,
+      }),
+    [filters.commodity, filters.state],
+  );
+
+  const brandConsistency = useMemo(
+    () => buildBrandConsistency(brandScopedSamples),
+    [brandScopedSamples],
+  );
+
+  const tierOrder: ConsistencyTier[] = [
+    "consistent",
+    "frequent",
+    "occasional",
+    "clean",
+    "insufficient",
+  ];
+
+  const tierCounts = useMemo(() => {
+    const counts: Record<ConsistencyTier, number> = {
+      consistent: 0,
+      frequent: 0,
+      occasional: 0,
+      clean: 0,
+      insufficient: 0,
+    };
+    for (const b of brandConsistency) counts[b.tier] += 1;
+    return counts;
+  }, [brandConsistency]);
+
+  const worstBrands = useMemo(
+    () =>
+      brandConsistency
+        .filter((b) => b.tier !== "insufficient")
+        .sort((a, b) => b.ncRate - a.ncRate || b.total - a.total)
+        .slice(0, 8),
+    [brandConsistency],
+  );
+
+  const selectedBrandStats = useMemo(() => {
+    if (filters.brand === ALL) return null;
+    return (
+      brandConsistency.find((b) => b.brand === filters.brand) ?? {
+        brand: filters.brand,
+        total: 0,
+        nc: 0,
+        ncRate: 0,
+        tier: classifyConsistency(0, 0),
+      }
+    );
+  }, [brandConsistency, filters.brand]);
+
   return (
     <div className="min-h-screen bg-background">
       <header className="bg-gradient-header text-primary-foreground">
