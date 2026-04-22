@@ -53,3 +53,78 @@ export function applyFilters(data: Sample[], f: Filters): Sample[] {
     return true;
   });
 }
+
+export type ConsistencyTier =
+  | "consistent"
+  | "frequent"
+  | "occasional"
+  | "clean"
+  | "insufficient";
+
+export const CONSISTENCY_META: Record<
+  ConsistencyTier,
+  { label: string; short: string; description: string }
+> = {
+  consistent: {
+    label: "Consistent failure",
+    short: "Consistent",
+    description: "≥ 60% of samples non-compliant",
+  },
+  frequent: {
+    label: "Frequent failure",
+    short: "Frequent",
+    description: "30–60% of samples non-compliant",
+  },
+  occasional: {
+    label: "Occasional failure",
+    short: "Occasional",
+    description: "5–30% of samples non-compliant",
+  },
+  clean: {
+    label: "Clean",
+    short: "Clean",
+    description: "< 5% of samples non-compliant",
+  },
+  insufficient: {
+    label: "Insufficient data",
+    short: "Insufficient",
+    description: "Fewer than 3 samples",
+  },
+};
+
+export const MIN_SAMPLES_FOR_TIER = 3;
+
+export function classifyConsistency(total: number, nc: number): ConsistencyTier {
+  if (total < MIN_SAMPLES_FOR_TIER) return "insufficient";
+  const rate = (nc / total) * 100;
+  if (rate >= 60) return "consistent";
+  if (rate >= 30) return "frequent";
+  if (rate >= 5) return "occasional";
+  return "clean";
+}
+
+export type BrandConsistency = {
+  brand: string;
+  total: number;
+  nc: number;
+  ncRate: number;
+  tier: ConsistencyTier;
+};
+
+export function buildBrandConsistency(data: Sample[]): BrandConsistency[] {
+  const map = new Map<string, { total: number; nc: number }>();
+  for (const s of data) {
+    if (!s.brand) continue;
+    const cur = map.get(s.brand) ?? { total: 0, nc: 0 };
+    cur.total += 1;
+    if (s.status === "NC") cur.nc += 1;
+    map.set(s.brand, cur);
+  }
+  return Array.from(map, ([brand, v]) => ({
+    brand,
+    total: v.total,
+    nc: v.nc,
+    ncRate: v.total ? (v.nc / v.total) * 100 : 0,
+    tier: classifyConsistency(v.total, v.nc),
+  }));
+}
