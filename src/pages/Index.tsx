@@ -1,16 +1,22 @@
 import { useMemo, useState } from "react";
-import { ShieldCheck, AlertTriangle, BarChart3, MapPin } from "lucide-react";
+import { ShieldCheck, AlertTriangle, BarChart3, MapPin, Activity } from "lucide-react";
 import { FilterBar } from "@/components/dashboard/FilterBar";
 import { KpiCard } from "@/components/dashboard/KpiCard";
 import { SectionCard } from "@/components/dashboard/SectionCard";
 import { FailedParamsChart } from "@/components/dashboard/FailedParamsChart";
 import { VariantPie } from "@/components/dashboard/VariantPie";
+import { ConsistencyBadge } from "@/components/dashboard/ConsistencyBadge";
 import {
   ALL,
   applyFilters,
+  buildBrandConsistency,
+  classifyConsistency,
+  CONSISTENCY_META,
+  MIN_SAMPLES_FOR_TIER,
   parseFailedParams,
   samples,
   uniqueSorted,
+  type ConsistencyTier,
   type Filters,
 } from "@/lib/dashboard-data";
 import { cn } from "@/lib/utils";
