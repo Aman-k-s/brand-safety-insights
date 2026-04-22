@@ -8,35 +8,56 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --background: 210 30% 98%;
+    --foreground: 215 35% 15%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 215 35% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 215 35% 15%;
 
-    --primary: 222.2 47.4% 11.2%;
+    --primary: 215 60% 25%;
     --primary-foreground: 210 40% 98%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 210 30% 94%;
+    --secondary-foreground: 215 35% 20%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 210 25% 94%;
+    --muted-foreground: 215 16% 45%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 200 85% 40%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 75% 50%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --success: 145 60% 38%;
+    --success-foreground: 0 0% 100%;
 
-    --radius: 0.5rem;
+    --warning: 38 95% 50%;
+    --warning-foreground: 215 35% 15%;
+
+    --risk: 0 75% 50%;
+    --risk-bg: 0 80% 96%;
+    --risk-border: 0 70% 85%;
+
+    --chart-1: 215 60% 35%;
+    --chart-2: 200 85% 45%;
+    --chart-3: 145 55% 42%;
+    --chart-4: 38 90% 52%;
+    --chart-5: 270 50% 55%;
+    --chart-6: 0 70% 55%;
+
+    --border: 214 25% 88%;
+    --input: 214 25% 88%;
+    --ring: 215 60% 25%;
+
+    --radius: 0.625rem;
+
+    --shadow-card: 0 1px 3px 0 hsl(215 25% 15% / 0.06), 0 1px 2px -1px hsl(215 25% 15% / 0.04);
+    --shadow-elevated: 0 4px 12px -2px hsl(215 25% 15% / 0.08), 0 2px 4px -2px hsl(215 25% 15% / 0.04);
+    --gradient-header: linear-gradient(135deg, hsl(215 60% 22%), hsl(215 55% 32%));
 
     --sidebar-background: 0 0% 98%;
 
