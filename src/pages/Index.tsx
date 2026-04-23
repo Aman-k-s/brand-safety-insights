@@ -12,7 +12,6 @@ import {
   classifyConsistency,
   CONSISTENCY_META,
   MIN_SAMPLES_FOR_TIER,
-  parseFailedParams,
   samples,
   uniqueSorted,
   type ConsistencyTier,
@@ -66,20 +65,6 @@ const Index = () => {
   const ncRate = pct(ncCount, total);
   const complianceRate = pct(compliantCount, total);
   const isHighRisk = ncRate > HIGH_RISK_THRESHOLD && total > 0;
-
-  // Failed parameters (from NC samples only).
-  const failedParamsData = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const s of filtered) {
-      if (s.status !== "NC") continue;
-      for (const p of parseFailedParams(s.failed_params)) {
-        counts.set(p, (counts.get(p) ?? 0) + 1);
-      }
-    }
-    return Array.from(counts, ([parameter, count]) => ({ parameter, count }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 8);
-  }, [filtered]);
 
   // Variant split.
   const variantData = useMemo(() => {
