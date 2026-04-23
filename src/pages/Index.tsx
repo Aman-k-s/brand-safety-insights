@@ -3,7 +3,6 @@ import { ShieldCheck, AlertTriangle, BarChart3, MapPin, Activity } from "lucide-
 import { FilterBar } from "@/components/dashboard/FilterBar";
 import { KpiCard } from "@/components/dashboard/KpiCard";
 import { SectionCard } from "@/components/dashboard/SectionCard";
-import { FailedParamsChart } from "@/components/dashboard/FailedParamsChart";
 import { VariantPie } from "@/components/dashboard/VariantPie";
 import { ConsistencyBadge } from "@/components/dashboard/ConsistencyBadge";
 import {
