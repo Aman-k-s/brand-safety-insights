@@ -3,7 +3,6 @@ import { ShieldCheck, AlertTriangle, BarChart3, MapPin, Activity } from "lucide-
 import { FilterBar } from "@/components/dashboard/FilterBar";
 import { KpiCard } from "@/components/dashboard/KpiCard";
 import { SectionCard } from "@/components/dashboard/SectionCard";
-import { FailedParamsChart } from "@/components/dashboard/FailedParamsChart";
 import { VariantPie } from "@/components/dashboard/VariantPie";
 import { ConsistencyBadge } from "@/components/dashboard/ConsistencyBadge";
 import {
@@ -13,7 +12,6 @@ import {
   classifyConsistency,
   CONSISTENCY_META,
   MIN_SAMPLES_FOR_TIER,
-  parseFailedParams,
   samples,
   uniqueSorted,
   type ConsistencyTier,
@@ -67,20 +65,6 @@ const Index = () => {
   const ncRate = pct(ncCount, total);
   const complianceRate = pct(compliantCount, total);
   const isHighRisk = ncRate > HIGH_RISK_THRESHOLD && total > 0;
-
-  // Failed parameters (from NC samples only).
-  const failedParamsData = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const s of filtered) {
-      if (s.status !== "NC") continue;
-      for (const p of parseFailedParams(s.failed_params)) {
-        counts.set(p, (counts.get(p) ?? 0) + 1);
-      }
-    }
-    return Array.from(counts, ([parameter, count]) => ({ parameter, count }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 8);
-  }, [filtered]);
 
   // Variant split.
   const variantData = useMemo(() => {
@@ -445,14 +429,7 @@ const Index = () => {
           ) : null}
         </SectionCard>
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <SectionCard
-            className="lg:col-span-2"
-            title="Key Risk Parameters"
-            description="Top failure reasons across non-compliant samples."
-          >
-            <FailedParamsChart data={failedParamsData} />
-          </SectionCard>
+        <div className="grid grid-cols-1 gap-6">
           <SectionCard
             title="Variant Split"
             description="Normal vs Organic vs Loose samples in the current selection."
