@@ -444,14 +444,7 @@ const Index = () => {
           ) : null}
         </SectionCard>
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <SectionCard
-            className="lg:col-span-2"
-            title="Key Risk Parameters"
-            description="Top failure reasons across non-compliant samples."
-          >
-            <FailedParamsChart data={failedParamsData} />
-          </SectionCard>
+        <div className="grid grid-cols-1 gap-6">
           <SectionCard
             title="Variant Split"
             description="Normal vs Organic vs Loose samples in the current selection."
