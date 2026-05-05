@@ -113,7 +113,10 @@ Deno.serve(async (req) => {
     const GS_KEY = Deno.env.get("GOOGLE_SHEETS_API_KEY");
     if (!GS_KEY) throw new Error("GOOGLE_SHEETS_API_KEY is not configured");
 
-    const url = `${GATEWAY_URL}/spreadsheets/${SPREADSHEET_ID}/values/${RANGE}?valueRenderOption=FORMATTED_VALUE`;
+    // Use batchGet with `ranges` query param so the range is properly decoded by Sheets.
+    const url =
+      `${GATEWAY_URL}/spreadsheets/${SPREADSHEET_ID}/values:batchGet` +
+      `?ranges=${encodeURIComponent(RANGE)}&valueRenderOption=FORMATTED_VALUE`;
     const resp = await fetch(url, {
       headers: {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,
@@ -127,7 +130,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    const rows = toRows(data.values ?? []);
+    const values: string[][] = data.valueRanges?.[0]?.values ?? [];
+    const rows = toRows(values);
     const samples = mapToSample(rows);
 
     return new Response(
