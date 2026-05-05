@@ -1,9 +1,18 @@
 import { useMemo, useState } from "react";
-import { ShieldCheck, AlertTriangle, BarChart3, MapPin, Activity } from "lucide-react";
+import {
+  ShieldCheck,
+  AlertTriangle,
+  BarChart3,
+  MapPin,
+  Activity,
+  RefreshCw,
+  Tag,
+} from "lucide-react";
 import { FilterBar } from "@/components/dashboard/FilterBar";
 import { KpiCard } from "@/components/dashboard/KpiCard";
 import { SectionCard } from "@/components/dashboard/SectionCard";
 import { VariantPie } from "@/components/dashboard/VariantPie";
+import { FailedParamsChart } from "@/components/dashboard/FailedParamsChart";
 import { ConsistencyBadge } from "@/components/dashboard/ConsistencyBadge";
 import {
   ALL,
@@ -11,12 +20,15 @@ import {
   buildBrandConsistency,
   classifyConsistency,
   CONSISTENCY_META,
+  isLabelingIssue,
+  isOverallCompliant,
   MIN_SAMPLES_FOR_TIER,
-  samples,
+  normalizedFailedParameters,
   uniqueSorted,
   type ConsistencyTier,
   type Filters,
 } from "@/lib/dashboard-data";
+import { useLiveSamples } from "@/hooks/use-live-samples";
 import { cn } from "@/lib/utils";
 
 const HIGH_RISK_THRESHOLD = 20; // %
@@ -31,6 +43,7 @@ function fmtPct(v: number) {
 }
 
 const Index = () => {
+  const { samples, loading, error, fetchedAt, isLive, refresh } = useLiveSamples();
   const [filters, setFilters] = useState<Filters>({
     brand: ALL,
     commodity: ALL,
@@ -41,7 +54,7 @@ const Index = () => {
   const allBrands = useMemo(
     () =>
       uniqueSorted(samples.map((s) => s.brand)).map((b) => ({ value: b, label: b })),
-    [],
+    [samples],
   );
   const allCommodities = useMemo(
     () =>
@@ -49,22 +62,35 @@ const Index = () => {
         value: c,
         label: c,
       })),
-    [],
+    [samples],
   );
   const allStates = useMemo(
     () =>
       uniqueSorted(samples.map((s) => s.state)).map((s) => ({ value: s, label: s })),
-    [],
+    [samples],
   );
 
-  const filtered = useMemo(() => applyFilters(samples, filters), [filters]);
+  const filtered = useMemo(() => applyFilters(samples, filters), [samples, filters]);
 
-  const total = filtered.length;
+  // Total Samples = distinct count of Order ID
+  const total = useMemo(() => {
+    const ids = new Set<string>();
+    for (const s of filtered) if (s.order_id) ids.add(s.order_id);
+    return ids.size || filtered.length;
+  }, [filtered]);
   const ncCount = filtered.filter((s) => s.status === "NC").length;
   const compliantCount = filtered.filter((s) => s.status === "Compliant").length;
   const ncRate = pct(ncCount, total);
   const complianceRate = pct(compliantCount, total);
   const isHighRisk = ncRate > HIGH_RISK_THRESHOLD && total > 0;
+
+  const overallCompliantCount = filtered.filter((s) =>
+    isOverallCompliant(s.overall_compliance),
+  ).length;
+  const overallComplianceRate = pct(overallCompliantCount, total);
+  const labelingIssuesCount = filtered.filter((s) =>
+    isLabelingIssue(s.labeling_issue),
+  ).length;
 
   // Variant split.
   const variantData = useMemo(() => {
@@ -76,6 +102,20 @@ const Index = () => {
     return Array.from(counts, ([name, value]) => ({ name, value })).sort(
       (a, b) => b.value - a.value,
     );
+  }, [filtered]);
+
+  // Top failed parameters (NC samples only), normalized one-per-row.
+  const failedParamsData = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const s of filtered) {
+      if (s.status !== "NC") continue;
+      for (const p of normalizedFailedParameters(s.failed_params)) {
+        counts.set(p, (counts.get(p) ?? 0) + 1);
+      }
+    }
+    return Array.from(counts, ([parameter, count]) => ({ parameter, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 12);
   }, [filtered]);
 
   // Commodity-wise sample count + NC stats.
@@ -136,7 +176,7 @@ const Index = () => {
         commodity: filters.commodity,
         state: filters.state,
       }),
-    [filters.commodity, filters.state],
+    [samples, filters.commodity, filters.state],
   );
 
   const brandConsistency = useMemo(
@@ -190,9 +230,29 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <header className="bg-gradient-header text-primary-foreground">
         <div className="mx-auto flex max-w-[1400px] flex-col gap-1 px-6 py-6">
-          <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-primary-foreground/70">
-            <ShieldCheck className="h-4 w-4" />
-            Food Safety Compliance
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-primary-foreground/70">
+              <ShieldCheck className="h-4 w-4" />
+              Food Safety Compliance
+            </div>
+            <div className="flex items-center gap-3 text-xs text-primary-foreground/80">
+              <span className="hidden sm:inline">
+                {loading
+                  ? "Refreshing live data…"
+                  : fetchedAt
+                    ? `${isLive ? "Live" : "Cached"} • updated ${fetchedAt.toLocaleTimeString()}`
+                    : "Cached data"}
+              </span>
+              <button
+                type="button"
+                onClick={refresh}
+                disabled={loading}
+                className="inline-flex items-center gap-1.5 rounded-md border border-primary-foreground/20 bg-primary-foreground/10 px-2.5 py-1 text-xs font-medium hover:bg-primary-foreground/20 disabled:opacity-60"
+              >
+                <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
+                Refresh
+              </button>
+            </div>
           </div>
           <h1 className="text-2xl font-semibold">Brand Insights Dashboard</h1>
           <p className="text-sm text-primary-foreground/80">
@@ -203,6 +263,12 @@ const Index = () => {
       </header>
 
       <main className="mx-auto max-w-[1400px] space-y-6 px-6 py-6">
+        {error ? (
+          <div className="rounded-lg border border-risk-border bg-risk-bg p-3 text-sm text-risk">
+            Live data fetch failed: {error}. Showing cached snapshot.
+          </div>
+        ) : null}
+
         <FilterBar
           brand={filters.brand}
           commodity={filters.commodity}
@@ -232,11 +298,11 @@ const Index = () => {
           </div>
         ) : null}
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           <KpiCard
             label="Total Samples"
             value={total.toLocaleString()}
-            hint={selectedBrand}
+            hint={`${selectedBrand} • distinct Order IDs`}
             icon={<BarChart3 className="h-4 w-4" />}
           />
           <KpiCard
@@ -252,6 +318,20 @@ const Index = () => {
             hint={`${compliantCount.toLocaleString()} compliant samples`}
             tone={total && complianceRate >= 80 ? "success" : "default"}
             icon={<ShieldCheck className="h-4 w-4" />}
+          />
+          <KpiCard
+            label="Overall Compliant"
+            value={overallCompliantCount.toLocaleString()}
+            hint={total ? `${fmtPct(overallComplianceRate)} overall rate` : "—"}
+            tone={total && overallComplianceRate >= 80 ? "success" : "default"}
+            icon={<ShieldCheck className="h-4 w-4" />}
+          />
+          <KpiCard
+            label="Labeling Issues"
+            value={labelingIssuesCount.toLocaleString()}
+            hint={total ? `${fmtPct(pct(labelingIssuesCount, total))} of samples` : "—"}
+            tone={labelingIssuesCount > 0 ? "warning" : "default"}
+            icon={<Tag className="h-4 w-4" />}
           />
           <KpiCard
             label="Geographical Coverage"
@@ -429,7 +509,15 @@ const Index = () => {
           ) : null}
         </SectionCard>
 
-        <div className="grid grid-cols-1 gap-6">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2">
+            <SectionCard
+              title="Key Risk Parameters"
+              description="Top failure drivers across non-compliant samples (normalized, one parameter per row)."
+            >
+              <FailedParamsChart data={failedParamsData} />
+            </SectionCard>
+          </div>
           <SectionCard
             title="Variant Split"
             description="Normal vs Organic vs Loose samples in the current selection."
@@ -563,9 +651,12 @@ const Index = () => {
         </div>
 
         <p className="text-center text-xs text-muted-foreground">
-          Showing {total.toLocaleString()} samples from a master dataset of{" "}
-          {samples.length.toLocaleString()}. High-risk threshold: NC &gt;{" "}
-          {HIGH_RISK_THRESHOLD}%.
+          Showing {total.toLocaleString()} distinct samples from a master dataset
+          of {samples.length.toLocaleString()} rows
+          {fetchedAt
+            ? ` • last sync ${fetchedAt.toLocaleString()}`
+            : ""}{" "}
+          • High-risk threshold: NC &gt; {HIGH_RISK_THRESHOLD}%.
         </p>
       </main>
     </div>

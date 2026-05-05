@@ -10,17 +10,58 @@ export type Sample = {
   status: string | null;
   failed_params: string | null;
   count_unsafe: number | null;
+  labeling_issue?: string | null;
+  overall_compliance?: string | null;
 };
 
-export const samples: Sample[] = (rawSamples as Sample[]).map((s) => ({
-  ...s,
-  brand: s.brand?.trim() || null,
-  commodity: s.commodity?.trim() || null,
-  state: s.state?.trim() || null,
-  district: s.district?.trim() || null,
-  variant: s.variant?.trim() || null,
-  status: s.status?.trim() || null,
-}));
+export function normalizeSamples(input: Sample[]): Sample[] {
+  return input.map((s) => ({
+    ...s,
+    brand: s.brand?.trim() || null,
+    commodity: s.commodity?.trim() || null,
+    state: s.state?.trim() || null,
+    district: s.district?.trim() || null,
+    variant: s.variant?.trim() || null,
+    status: s.status?.trim() || null,
+    labeling_issue: s.labeling_issue?.trim() || null,
+    overall_compliance: s.overall_compliance?.trim() || null,
+  }));
+}
+
+// Fallback seed dataset (used until live fetch resolves).
+export const samples: Sample[] = normalizeSamples(rawSamples as Sample[]);
+
+export function isLabelingIssue(v: string | null | undefined): boolean {
+  if (!v) return false;
+  const s = v.trim().toLowerCase();
+  return s === "yes" || s === "y" || s === "true" || s === "non-compliant" || s === "nc";
+}
+
+export function isOverallCompliant(v: string | null | undefined): boolean {
+  if (!v) return false;
+  const s = v.trim().toLowerCase();
+  if (!s) return false;
+  if (s.startsWith("non")) return false; // non-compliant
+  return s.startsWith("compliant") || s === "yes" || s === "y" || s === "true";
+}
+
+/** Normalize "Failed Parameter" strings: split commas, trim, dedupe per-row. */
+export function normalizedFailedParameters(raw: string | null): string[] {
+  if (!raw) return [];
+  const parts = raw
+    .split(/[,;\n]/g)
+    .map((p) => p.split(":")[0])
+    .map((p) =>
+      p
+        .replace(/\s*\([^)]*\)\s*/g, " ")
+        .replace(/,\s*(mg\/kg|µg\/kg|cfu\/g|%|mg\/l|ml\/100g|per 25g)\b.*$/i, "")
+        .replace(/\s+compliance$/i, "")
+        .replace(/\s+/g, " ")
+        .trim(),
+    )
+    .filter((p) => p.length > 0 && p.toLowerCase() !== "no failed parameters");
+  return Array.from(new Set(parts));
+}
 
 export const ALL = "__all__";
 
