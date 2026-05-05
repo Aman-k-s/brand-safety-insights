@@ -7,7 +7,8 @@ const corsHeaders = {
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/google_sheets/v4";
 const SPREADSHEET_ID = "12ZBl8zbbC_7oQJCwgUGhw08hhi3wGDzSregPdiiFENA";
 const SHEET_NAME = "MASTER LIST";
-const RANGE = `${SHEET_NAME}!A1:ZZ20000`;
+// Sheet name has a space → must be single-quoted in A1 notation.
+const RANGE = `'${SHEET_NAME}'!A1:ZZ20000`;
 
 type Row = Record<string, string>;
 
