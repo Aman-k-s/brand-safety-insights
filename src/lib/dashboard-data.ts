@@ -40,7 +40,9 @@ export function isLabelingIssue(v: string | null | undefined): boolean {
 export function isOverallCompliant(v: string | null | undefined): boolean {
   if (!v) return false;
   const s = v.trim().toLowerCase();
-  return s === "compliant" || s === "yes" || s === "y" || s === "true";
+  if (!s) return false;
+  if (s.startsWith("non")) return false; // non-compliant
+  return s.startsWith("compliant") || s === "yes" || s === "y" || s === "true";
 }
 
 /** Normalize "Failed Parameter" strings: split commas, trim, dedupe per-row. */
